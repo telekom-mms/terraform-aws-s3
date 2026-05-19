@@ -152,8 +152,20 @@ variable "error_document" {
 
 variable "routing_rules" {
   description = "Routing rules for website configuration"
-  type        = any
-  default     = []
+  type = list(object({
+    condition = optional(object({
+      http_error_code_returned_equals = optional(string)
+      key_prefix_equals               = optional(string)
+    }))
+    redirect = object({
+      host_name               = optional(string)
+      http_redirect_code      = optional(string)
+      protocol                = optional(string)
+      replace_key_prefix_with = optional(string)
+      replace_key_with        = optional(string)
+    })
+  }))
+  default = []
 }
 
 variable "cors_rules" {
@@ -214,7 +226,17 @@ variable "replication_configuration" {
         bucket        = string
         storage_class = optional(string)
       })
-      filter = optional(any)
+      filter = optional(object({
+        prefix = optional(string)
+        tag = optional(object({
+          key   = string
+          value = string
+        }))
+        and = optional(object({
+          prefix = optional(string)
+          tags   = optional(map(string))
+        }))
+      }))
     }))
   })
   default = null

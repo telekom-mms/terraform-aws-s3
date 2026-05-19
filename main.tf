@@ -103,6 +103,7 @@ data "aws_iam_policy_document" "enforce_ssl" {
 }
 
 # S3 Bucket Lifecycle Configuration
+# PSA Compliance: Req 1 (data retention policy)
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
   count  = length(var.lifecycle_rules) > 0 ? 1 : 0
   bucket = aws_s3_bucket.this.id
@@ -180,11 +181,20 @@ resource "aws_s3_bucket_website_configuration" "this" {
   dynamic "routing_rule" {
     for_each = var.routing_rules
     content {
-      condition {
-        key_prefix_equals = routing_rule.value.condition.key_prefix_equals
+      dynamic "condition" {
+        for_each = routing_rule.value.condition != null ? [routing_rule.value.condition] : []
+        content {
+          http_error_code_returned_equals = condition.value.http_error_code_returned_equals
+          key_prefix_equals               = condition.value.key_prefix_equals
+        }
       }
+
       redirect {
+        host_name               = routing_rule.value.redirect.host_name
+        http_redirect_code      = routing_rule.value.redirect.http_redirect_code
+        protocol                = routing_rule.value.redirect.protocol
         replace_key_prefix_with = routing_rule.value.redirect.replace_key_prefix_with
+        replace_key_with        = routing_rule.value.redirect.replace_key_with
       }
     }
   }
@@ -252,7 +262,23 @@ resource "aws_s3_bucket_replication_configuration" "this" {
       dynamic "filter" {
         for_each = rule.value.filter != null ? [rule.value.filter] : []
         content {
-          prefix = lookup(filter.value, "prefix", null)
+          prefix = filter.value.prefix
+
+          dynamic "tag" {
+            for_each = filter.value.tag != null ? [filter.value.tag] : []
+            content {
+              key   = tag.value.key
+              value = tag.value.value
+            }
+          }
+
+          dynamic "and" {
+            for_each = filter.value.and != null ? [filter.value.and] : []
+            content {
+              prefix = and.value.prefix
+              tags   = and.value.tags
+            }
+          }
         }
       }
     }

@@ -67,3 +67,41 @@ output "public_access_block_configuration" {
     restrict_public_buckets = var.restrict_public_buckets
   }
 }
+
+output "replication_configuration" {
+  description = "Replication configuration applied to the bucket"
+  value       = var.replication_configuration
+}
+
+output "object_lock_enabled" {
+  description = "Whether object lock is enabled for the bucket"
+  value       = var.object_lock_enabled
+}
+
+output "object_lock_status" {
+  description = "Object lock status for the bucket"
+  value       = var.object_lock_enabled ? "Enabled" : "Disabled"
+}
+
+output "logging_target_bucket" {
+  description = "Target bucket receiving server access logs"
+  value       = var.enable_logging ? var.logging_target_bucket : null
+}
+
+output "notification_arns" {
+  description = "Configured notification target ARNs"
+  value = {
+    lambda = [for notification in values(var.lambda_notifications) : notification.lambda_function_arn]
+    sns    = [for notification in values(var.sns_notifications) : notification.topic_arn]
+  }
+}
+
+output "lambda_notification_arns" {
+  description = "Configured Lambda notification target ARNs"
+  value       = [for notification in values(var.lambda_notifications) : notification.lambda_function_arn]
+}
+
+output "sns_notification_arns" {
+  description = "Configured SNS notification target ARNs"
+  value       = [for notification in values(var.sns_notifications) : notification.topic_arn]
+}
